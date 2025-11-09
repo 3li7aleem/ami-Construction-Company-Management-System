@@ -37,9 +37,9 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks, startDate, endDate }) =>
 
   return (
     <div className="space-y-4">
-      <h4 className="text-md font-semibold text-dark-text">الجدول الزمني للمشروع</h4>
+      <h4 className="text-md font-semibold text-dark-text dark:text-dark-text-primary">الجدول الزمني للمشروع</h4>
       <div className="relative">
-        <div className="absolute w-full h-full border-r border-gray-200">
+        <div className="absolute w-full h-full border-r border-gray-200 dark:border-dark-border">
             {/* You could add vertical grid lines here */}
         </div>
         {tasks.map((task, index) => {

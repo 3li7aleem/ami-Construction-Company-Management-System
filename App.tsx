@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { Role, User, Material, Expense, Project, Equipment, Task, Conversation, Message, ManpowerAgent } from './types';
+import { Role, User, Material, Expense, Project, Equipment, Task, Conversation, Message, ManpowerAgent, DailyLog, AttendanceStatus, DailyLogEntry } from './types';
 import { 
     USERS as INITIAL_USERS, 
     MATERIALS as INITIAL_MATERIALS, 
@@ -10,11 +9,13 @@ import {
     TASKS as INITIAL_TASKS,
     CONVERSATIONS as INITIAL_CONVERSATIONS,
     MESSAGES as INITIAL_MESSAGES,
-    MANPOWER_AGENTS as INITIAL_MANPOWER_AGENTS
+    MANPOWER_AGENTS as INITIAL_MANPOWER_AGENTS,
+    DAILY_LOGS as INITIAL_DAILY_LOGS
 } from './constants';
 import * as Icons from './components/icons';
 import Dashboard from './components/Dashboard';
-import { ProjectsPage, TasksPage, FinancialsPage, InventoryPage, EquipmentPage, UsersPage, MailPage, ManpowerPage } from './components/pages';
+// FIX: Added MailPage to imports as it is now exported from components/pages.tsx
+import { ProjectsPage, TasksPage, FinancialsPage, InventoryPage, EquipmentPage, UsersPage, MailPage, ManpowerPage, DailyLogPage } from './components/pages';
 
 const LOGO_SRC = 'https://l.top4top.io/p_3599oulz31.png';
 
@@ -48,6 +49,7 @@ const translations = {
     projects: 'Projects',
     tasks: 'Tasks',
     manpower: 'Manpower',
+    dailyLog: 'Daily Log',
     mail: 'Mail',
     financials: 'Financials',
     inventory: 'Inventory',
@@ -115,6 +117,7 @@ const translations = {
     projects: 'المشاريع',
     tasks: 'المهام',
     manpower: 'القوى العاملة',
+    dailyLog: 'التقرير اليومي',
     mail: 'البريد',
     financials: 'المالية',
     inventory: 'المخزون',
@@ -183,6 +186,7 @@ const translations = {
     projects: 'परियोजनाएं',
     tasks: 'कार्य',
     manpower: 'जनशक्ति',
+    dailyLog: 'दैनिक लॉग',
     mail: 'मेल',
     financials: 'वित्तीय',
     inventory: 'इन्वेंटरी',
@@ -274,6 +278,48 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
   );
 };
 
+// --- Theme Setup ---
+type Theme = 'light' | 'dark';
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = localStorage.getItem('constructflow-theme');
+    return (storedTheme as Theme) || 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('constructflow-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
 
 // --- Main App Structure ---
 
@@ -291,6 +337,8 @@ const AppContent: React.FC = () => {
   const [manpowerAgents, setManpowerAgents] = useState<ManpowerAgent[]>(INITIAL_MANPOWER_AGENTS);
   const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>(INITIAL_DAILY_LOGS);
+
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -316,6 +364,15 @@ const AppContent: React.FC = () => {
     setUsers(prev => prev.filter(user => user.id !== userId));
     if (currentUser?.id === userId) {
         handleLogout();
+    }
+  };
+
+  const handleUpdateUserPassword = (userId: number, newPassword: string) => {
+    setUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, password: newPassword } : user
+    ));
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev => prev ? { ...prev, password: newPassword } : null);
     }
   };
 
@@ -432,6 +489,27 @@ const AppContent: React.FC = () => {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const handleAddDailyLog = (log: Omit<DailyLog, 'id'>) => {
+    const newLog = { ...log, id: Date.now() };
+    setDailyLogs(prev => [newLog, ...prev]);
+
+    // Also create a "report" message for managers
+    if (!currentUser) return;
+    const projectManager = users.find(u => u.role === Role.ProjectManager);
+    const siteEngineer = users.find(u => u.role === Role.SiteEngineer);
+    const recipients = [projectManager, siteEngineer].filter(Boolean) as User[];
+    if (recipients.length === 0) return;
+
+    const presentCount = log.entries.filter(e => e.status === AttendanceStatus.Present).length;
+    const totalCount = log.entries.length;
+    const subject = `تقرير الحضور اليومي - ${log.date}`;
+    const text = `تم تقديم تقرير الحضور لموقع العمل "${log.workplace}" لليوم ${log.date}. الحضور: ${presentCount}/${totalCount}.`;
+
+    recipients.forEach(recipient => {
+      handleNewConversation(recipient.id, subject, text);
+    });
+  };
+
   const exportToCsv = (data: any[], filename: string) => {
       if (data.length === 0) {
           console.log(`No data to export for ${filename}`);
@@ -478,24 +556,28 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-light-bg">
-      <Sidebar 
-        currentUser={currentUser} 
-        activeView={activeView} 
-        setActiveView={setActiveView} 
-        onLogout={handleLogout}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
+    <div className="flex h-screen bg-light-bg dark:bg-dark-bg">
+      <div className="no-print">
+        <Sidebar 
           currentUser={currentUser} 
-          onLogout={handleLogout} 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
-          materials={materials} 
-          onExport={handleExportData}
+          activeView={activeView} 
+          setActiveView={setActiveView} 
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg p-6 md:p-8">
+      </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="no-print">
+          <Header 
+            currentUser={currentUser} 
+            onLogout={handleLogout} 
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+            materials={materials} 
+            onExport={handleExportData}
+          />
+        </div>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-light-bg dark:bg-dark-bg p-6 md:p-8">
           <PageContent 
             activeView={activeView} 
             currentUser={currentUser} 
@@ -511,6 +593,7 @@ const AppContent: React.FC = () => {
             onAddUser={handleAddUser}
             onUpdateUser={handleUpdateUser}
             onDeleteUser={handleDeleteUser}
+            onUpdateUserPassword={handleUpdateUserPassword}
             projects={projects}
             onAddProject={handleAddProject}
             onUpdateProject={handleUpdateProject}
@@ -531,6 +614,8 @@ const AppContent: React.FC = () => {
             messages={messages}
             onSendMessage={handleSendMessage}
             onNewConversation={handleNewConversation}
+            dailyLogs={dailyLogs}
+            onAddDailyLog={handleAddDailyLog}
             setActiveView={setActiveView}
           />
         </main>
@@ -561,7 +646,7 @@ const LanguageSwitcher: React.FC<{ inLogin?: boolean }> = ({ inLogin = false }) 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [ref]);
 
-    const buttonClasses = inLogin ? "text-medium-text hover:text-primary" : "text-light-text hover:text-primary";
+    const buttonClasses = inLogin ? "text-medium-text hover:text-primary" : "text-light-text dark:text-dark-text-secondary hover:text-primary";
     const menuPosition = inLogin ? "top-full mt-2" : "start-0 mt-2";
 
 
@@ -571,7 +656,7 @@ const LanguageSwitcher: React.FC<{ inLogin?: boolean }> = ({ inLogin = false }) 
                 <Icons.LanguageIcon className="w-6 h-6" />
             </button>
             {isOpen && (
-                <div className={`absolute ${menuPosition} end-0 w-36 bg-white rounded-md shadow-lg z-20 border`}>
+                <div className={`absolute ${menuPosition} end-0 w-36 bg-white dark:bg-dark-card rounded-md shadow-lg z-20 border dark:border-dark-border`}>
                     <ul className="py-1">
                         {languages.map(lang => (
                              <li key={lang.code}>
@@ -580,7 +665,7 @@ const LanguageSwitcher: React.FC<{ inLogin?: boolean }> = ({ inLogin = false }) 
                                         setLanguage(lang.code);
                                         setIsOpen(false);
                                     }}
-                                    className={`w-full text-start px-4 py-2 text-sm text-medium-text hover:bg-light-bg ${language === lang.code ? 'font-bold text-primary' : ''}`}
+                                    className={`w-full text-start px-4 py-2 text-sm text-medium-text dark:text-dark-text-secondary hover:bg-light-bg dark:hover:bg-slate-700 ${language === lang.code ? 'font-bold text-primary' : ''}`}
                                 >
                                     {lang.name}
                                 </button>
@@ -592,6 +677,24 @@ const LanguageSwitcher: React.FC<{ inLogin?: boolean }> = ({ inLogin = false }) 
         </div>
     );
 };
+
+const ThemeToggle: React.FC = () => {
+    const { theme, toggleTheme } = useTheme();
+    return (
+        <button
+            onClick={toggleTheme}
+            className="text-light-text dark:text-dark-text-secondary hover:text-primary dark:hover:text-primary"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+        >
+            {theme === 'light' ? (
+                <Icons.MoonIcon className="w-6 h-6" />
+            ) : (
+                <Icons.SunIcon className="w-6 h-6" />
+            )}
+        </button>
+    );
+};
+
 
 const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = ({ onLogin, users }) => {
   const { t, dir } = useLanguage();
@@ -618,23 +721,26 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = 
   };
 
   return (
-    <div className="min-h-screen bg-light-bg font-sans">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg font-sans">
       <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
         {/* Form Column */}
         <div className="flex flex-col justify-center items-center p-6 sm:p-12 order-2 lg:order-1">
           <div className="w-full max-w-md">
             <div className={`flex justify-between items-center mb-8 ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
               <img src={LOGO_SRC} alt="ConstructFlow Logo" className="h-10" />
-              <LanguageSwitcher inLogin />
+              <div className="flex items-center gap-4">
+                <LanguageSwitcher inLogin />
+                <ThemeToggle />
+              </div>
             </div>
 
-            <h1 className="text-3xl font-bold text-dark-text mb-2">{t('signInToAccount')}</h1>
-            <p className="text-medium-text mb-8">{t('signInToContinue')}</p>
+            <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary mb-2">{t('signInToAccount')}</h1>
+            <p className="text-medium-text dark:text-dark-text-secondary mb-8">{t('signInToContinue')}</p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* User Select */}
               <div>
-                <label htmlFor="user-select" className="block text-sm font-bold text-medium-text mb-2">{t('user')}</label>
+                <label htmlFor="user-select" className="block text-sm font-bold text-medium-text dark:text-dark-text-secondary mb-2">{t('user')}</label>
                 <div className="relative">
                   <div className={`absolute inset-y-0 ${dir === 'rtl' ? 'end-0 pr-3' : 'start-0 pl-3'} flex items-center pointer-events-none`}>
                     <Icons.UserCircleIcon className="h-5 w-5 text-gray-400" />
@@ -643,7 +749,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = 
                     id="user-select"
                     value={selectedUserId}
                     onChange={(e) => setSelectedUserId(e.target.value)}
-                    className={`w-full border bg-white border-gray-300 rounded-lg p-3 ${dir === 'rtl' ? 'pr-10' : 'pl-10'} focus:ring-primary focus:border-primary transition`}
+                    className={`w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-lg p-3 ${dir === 'rtl' ? 'pr-10' : 'pl-10'} focus:ring-primary focus:border-primary transition`}
                   >
                     {users.map(user => (
                       <option key={user.id} value={user.id}>{user.name} ({t(user.role)})</option>
@@ -654,7 +760,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = 
 
               {/* Password Input */}
               <div>
-                <label htmlFor="password-input" className="block text-sm font-bold text-medium-text mb-2">{t('password')}</label>
+                <label htmlFor="password-input" className="block text-sm font-bold text-medium-text dark:text-dark-text-secondary mb-2">{t('password')}</label>
                 <div className="relative">
                    <div className={`absolute inset-y-0 ${dir === 'rtl' ? 'end-0 pr-3' : 'start-0 pl-3'} flex items-center pointer-events-none`}>
                     <Icons.LockClosedIcon className="h-5 w-5 text-gray-400" />
@@ -664,7 +770,7 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = 
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full border border-gray-300 rounded-lg p-3 ${dir === 'rtl' ? 'pr-10' : 'pl-10'} focus:ring-primary focus:border-primary transition`}
+                    className={`w-full border border-gray-300 dark:border-slate-600 rounded-lg p-3 bg-white dark:bg-slate-700 dark:text-white ${dir === 'rtl' ? 'pr-10' : 'pl-10'} focus:ring-primary focus:border-primary transition`}
                     required
                   />
                   <button
@@ -676,10 +782,10 @@ const LoginScreen: React.FC<{ onLogin: (user: User) => void, users: User[] }> = 
                     {showPassword ? <Icons.EyeSlashIcon className="h-5 w-5" /> : <Icons.EyeIcon className="h-5 w-5" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">{t('passwordHint')}</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">{t('passwordHint')}</p>
               </div>
 
-              {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-lg">{error}</p>}
+              {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 dark:bg-red-900/20 dark:text-red-400 p-3 rounded-lg">{error}</p>}
 
               {/* Submit Button */}
               <div>
@@ -740,9 +846,9 @@ const Header: React.FC<{ currentUser: User, onLogout: () => void, onMenuClick: (
     }, [notificationRef]);
     
     return (
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+        <header className="bg-white dark:bg-dark-card shadow-sm p-4 flex justify-between items-center border-b dark:border-dark-border">
              <div className="flex items-center gap-x-4">
-                <button onClick={onMenuClick} className="lg:hidden text-gray-500">
+                <button onClick={onMenuClick} className="lg:hidden text-gray-500 dark:text-gray-300">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
@@ -750,11 +856,11 @@ const Header: React.FC<{ currentUser: User, onLogout: () => void, onMenuClick: (
                  <img src={LOGO_SRC} alt="ConstructFlow Logo" className="h-8" />
             </div>
             <div className="flex items-center gap-x-4">
-                 <span className="hidden sm:block text-medium-text">{t('welcome')}, {currentUser.name}</span>
+                 <span className="hidden sm:block text-medium-text dark:text-dark-text-secondary">{t('welcome')}, {currentUser.name}</span>
 
                 {currentUser.role === Role.InventoryManager && (
                     <div className="relative" ref={notificationRef}>
-                        <button onClick={handleNotificationClick} className="text-light-text hover:text-primary relative" title={t('notifications')}>
+                        <button onClick={handleNotificationClick} className="text-light-text dark:text-dark-text-secondary hover:text-primary relative" title={t('notifications')}>
                             <Icons.NotificationIcon className="w-6 h-6" />
                             {lowStockItems.length > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -764,24 +870,24 @@ const Header: React.FC<{ currentUser: User, onLogout: () => void, onMenuClick: (
                             )}
                         </button>
                         {notificationsOpen && (
-                            <div className="absolute end-0 mt-2 w-80 bg-white rounded-md shadow-lg z-20 border">
-                                <div className="p-3 border-b">
-                                    <h4 className="font-semibold text-dark-text">إشعارات المخزون</h4>
+                            <div className="absolute end-0 mt-2 w-80 bg-white dark:bg-dark-card rounded-md shadow-lg z-20 border dark:border-dark-border">
+                                <div className="p-3 border-b dark:border-dark-border">
+                                    <h4 className="font-semibold text-dark-text dark:text-dark-text-primary">إشعارات المخزون</h4>
                                 </div>
                                 <ul className="py-1 max-h-64 overflow-y-auto">
                                     {lowStockItems.length > 0 ? (
                                         lowStockItems.map(item => (
-                                            <li key={item.id} className="px-4 py-3 text-sm text-medium-text hover:bg-light-bg border-b last:border-b-0 cursor-pointer">
-                                                <p className="font-semibold text-red-600">
+                                            <li key={item.id} className="px-4 py-3 text-sm text-medium-text dark:text-dark-text-secondary hover:bg-light-bg dark:hover:bg-slate-700 border-b dark:border-dark-border last:border-b-0 cursor-pointer">
+                                                <p className="font-semibold text-red-600 dark:text-red-400">
                                                     <span className="font-bold">{item.name}</span> على وشك النفاد!
                                                 </p>
-                                                <p className="text-xs text-light-text mt-1">
+                                                <p className="text-xs text-light-text dark:text-slate-400 mt-1">
                                                     الكمية المتبقية: {item.quantity} {item.unit} (الحد الأدنى: {item.threshold})
                                                 </p>
                                             </li>
                                         ))
                                     ) : (
-                                        <li className="px-4 py-3 text-sm text-light-text">لا توجد إشعارات جديدة.</li>
+                                        <li className="px-4 py-3 text-sm text-light-text dark:text-dark-text-secondary">لا توجد إشعارات جديدة.</li>
                                     )}
                                 </ul>
                             </div>
@@ -789,11 +895,12 @@ const Header: React.FC<{ currentUser: User, onLogout: () => void, onMenuClick: (
                     </div>
                 )}
                 
-                <button onClick={onExport} className="text-light-text hover:text-primary" title={t('exportData')}>
+                <button onClick={onExport} className="text-light-text dark:text-dark-text-secondary hover:text-primary" title={t('exportData')}>
                     <Icons.DownloadIcon className="w-6 h-6" />
                 </button>
                 <LanguageSwitcher />
-                <button onClick={onLogout} className="text-light-text hover:text-primary" title={t('logout')}>
+                <ThemeToggle />
+                <button onClick={onLogout} className="text-light-text dark:text-dark-text-secondary hover:text-primary" title={t('logout')}>
                     <Icons.LogoutIcon className="w-6 h-6" />
                 </button>
             </div>
@@ -817,6 +924,7 @@ const Sidebar: React.FC<{
         { view: 'Projects', labelKey: 'projects', icon: Icons.ProjectsIcon },
         { view: 'Tasks', labelKey: 'tasks', icon: Icons.TasksIcon },
         { view: 'Manpower', labelKey: 'manpower', icon: Icons.ManpowerIcon },
+        { view: 'DailyLog', labelKey: 'dailyLog', icon: Icons.ClipboardCheckIcon },
         { view: 'Mail', labelKey: 'mail', icon: Icons.MailIcon },
         { view: 'Financials', labelKey: 'financials', icon: Icons.FinanceIcon },
         { view: 'Inventory', labelKey: 'inventory', icon: Icons.InventoryIcon },
@@ -825,14 +933,14 @@ const Sidebar: React.FC<{
       ];
   
       const rolePermissions: { [key in Role]?: string[] } = {
-        [Role.ProjectManager]: ['Dashboard', 'Projects', 'Tasks', 'Mail', 'Financials', 'Inventory', 'Equipment', 'Users', 'Manpower'],
+        [Role.ProjectManager]: ['Dashboard', 'Projects', 'Tasks', 'Mail', 'Financials', 'Inventory', 'Equipment', 'Users', 'Manpower', 'DailyLog'],
         [Role.Worker]: ['Dashboard', 'Tasks', 'Mail', 'Manpower'],
         [Role.FinanceManager]: ['Dashboard', 'Financials', 'Mail', 'Manpower'],
         [Role.EquipmentOperator]: ['Dashboard', 'Equipment', 'Tasks', 'Mail', 'Manpower'],
         [Role.InventoryManager]: ['Dashboard', 'Inventory', 'Mail', 'Manpower'],
         [Role.Supplier]: ['Dashboard', 'Mail', 'Manpower'],
-        [Role.SiteSupervisor]: ['Dashboard', 'Projects', 'Tasks', 'Users', 'Mail', 'Manpower'],
-        [Role.SiteEngineer]: ['Dashboard', 'Projects', 'Tasks', 'Users', 'Mail', 'Manpower'],
+        [Role.SiteSupervisor]: ['Dashboard', 'Projects', 'Tasks', 'Users', 'Mail', 'Manpower', 'DailyLog'],
+        [Role.SiteEngineer]: ['Dashboard', 'Projects', 'Tasks', 'Users', 'Mail', 'Manpower', 'DailyLog'],
         [Role.Client]: ['Dashboard', 'Projects', 'Mail', 'Manpower'],
       };
       
@@ -866,7 +974,7 @@ const Sidebar: React.FC<{
     </button>
   );
 
-  const sidebarClasses = `fixed lg:relative z-40 lg:z-auto w-64 bg-primary-dark text-white h-full flex flex-col p-4 transform transition-transform duration-300 ease-in-out ${
+  const sidebarClasses = `fixed lg:relative z-40 lg:z-auto w-64 bg-dark-bg text-white h-full flex flex-col p-4 transform transition-transform duration-300 ease-in-out ${
     isOpen 
       ? (dir === 'rtl' ? 'translate-x-0' : 'translate-x-0') 
       : (dir === 'rtl' ? 'translate-x-full' : '-translate-x-full')
@@ -874,7 +982,7 @@ const Sidebar: React.FC<{
 
   return (
     <>
-      <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden ${isOpen ? 'block' : 'hidden'}`} onClick={() => setIsOpen(false)}></div>
+      <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden no-print ${isOpen ? 'block' : 'hidden'}`} onClick={() => setIsOpen(false)}></div>
       <aside className={sidebarClasses}>
         <div className="mb-8 pt-2">
           <img src={LOGO_SRC} alt="ConstructFlow Logo" className="h-10 mx-auto" />
@@ -911,6 +1019,7 @@ interface PageContentProps {
   onAddUser: (user: Omit<User, 'id'>) => void;
   onUpdateUser: (user: User) => void;
   onDeleteUser: (userId: number) => void;
+  onUpdateUserPassword: (userId: number, newPassword: string) => void;
   projects: Project[];
   onAddProject: (project: Omit<Project, 'id'>) => void;
   onUpdateProject: (project: Project) => void;
@@ -931,18 +1040,21 @@ interface PageContentProps {
   messages: Message[];
   onSendMessage: (conversationId: number, text: string) => void;
   onNewConversation: (recipientId: number, subject: string, text: string) => void;
+  dailyLogs: DailyLog[];
+  onAddDailyLog: (log: Omit<DailyLog, 'id'>) => void;
   setActiveView: (view: string) => void;
 }
 
 const PageContent: React.FC<PageContentProps> = (props) => {
   const { 
       activeView, currentUser, materials, expenses, users, projects, equipment, tasks,
-      onAddUser, onUpdateUser, onDeleteUser, onAddProject, onUpdateProject, 
+      onAddUser, onUpdateUser, onDeleteUser, onUpdateUserPassword, onAddProject, onUpdateProject, 
       onDeleteProject, onAddMaterial, onUpdateMaterial, onDeleteMaterial,
       onAddEquipment, onUpdateEquipment, onDeleteEquipment, onAddExpense,
       onUpdateExpense, onDeleteExpense, onAddTask, onUpdateTask, onDeleteTask,
       manpowerAgents, onAddManpowerAgent, onUpdateManpowerAgent, onDeleteManpowerAgent,
       conversations, messages, onSendMessage, onNewConversation,
+      dailyLogs, onAddDailyLog,
       setActiveView
   } = props;
 
@@ -959,6 +1071,7 @@ const PageContent: React.FC<PageContentProps> = (props) => {
                 manpowerAgents={manpowerAgents}
                 onUpdateUser={onUpdateUser} 
                 onNavigate={setActiveView}
+                onUpdateExpense={onUpdateExpense}
             />;
     case 'Projects':
       return <ProjectsPage 
@@ -988,51 +1101,83 @@ const PageContent: React.FC<PageContentProps> = (props) => {
                 onAddExpense={onAddExpense}
                 onUpdateExpense={onUpdateExpense}
                 onDeleteExpense={onDeleteExpense}
-                materials={materials} 
+                materials={materials}
             />;
     case 'Inventory':
-      return <InventoryPage materials={materials} onAdd={onAddMaterial} onUpdate={onUpdateMaterial} onDelete={onDeleteMaterial} />;
+      return <InventoryPage 
+                materials={materials} 
+                onAdd={onAddMaterial} 
+                onUpdate={onUpdateMaterial} 
+                onDelete={onDeleteMaterial} 
+            />;
     case 'Equipment':
-        return <EquipmentPage equipment={equipment} users={users} onAdd={onAddEquipment} onUpdate={onUpdateEquipment} onDelete={onDeleteEquipment} />;
-    case 'Manpower':
-        return <ManpowerPage
-            manpowerAgents={manpowerAgents}
-            currentUser={currentUser}
-            onAdd={onAddManpowerAgent}
-            onUpdate={onUpdateManpowerAgent}
-            onDelete={onDeleteManpowerAgent}
-        />;
+      return <EquipmentPage 
+                equipment={equipment} 
+                users={users} 
+                onAdd={onAddEquipment} 
+                onUpdate={onUpdateEquipment} 
+                onDelete={onDeleteEquipment} 
+            />;
     case 'Users':
-        if (currentUser.role !== Role.ProjectManager) {
-             return (
-                <div className="text-center p-8 bg-white rounded-lg shadow-md">
-                    <h2 className="text-2xl font-bold text-red-600">تم رفض الوصول</h2>
-                    <p className="text-medium-text mt-2">ليس لديك الصلاحيات اللازمة لعرض هذه الصفحة.</p>
-                </div>
-            );
-        }
-        return <UsersPage users={users} onAdd={onAddUser} onUpdate={onUpdateUser} onDelete={onDeleteUser} />;
+      return <UsersPage 
+                users={users} 
+                currentUser={currentUser}
+                onAdd={onAddUser} 
+                onUpdate={onUpdateUser} 
+                onDelete={onDeleteUser} 
+                onUpdateUserPassword={onUpdateUserPassword}
+            />;
     case 'Mail':
-        return <MailPage 
-                  currentUser={currentUser} 
-                  users={users} 
-                  conversations={conversations} 
-                  messages={messages} 
-                  onSendMessage={onSendMessage} 
-                  onNewConversation={onNewConversation}
+      return <MailPage
+                currentUser={currentUser}
+                users={users}
+                conversations={conversations}
+                messages={messages}
+                onSendMessage={onSendMessage}
+                onNewConversation={onNewConversation}
               />;
+    case 'Manpower':
+      return <ManpowerPage
+                manpowerAgents={manpowerAgents}
+                currentUser={currentUser}
+                onAdd={onAddManpowerAgent}
+                onUpdate={onUpdateManpowerAgent}
+                onDelete={onDeleteManpowerAgent}
+              />;
+    case 'DailyLog':
+      return <DailyLogPage
+                currentUser={currentUser}
+                manpowerAgents={manpowerAgents}
+                dailyLogs={dailyLogs}
+                users={users}
+                onAddDailyLog={onAddDailyLog}
+              />
     default:
-      return <div>غير موجود</div>;
+      return <Dashboard 
+                currentUser={currentUser} 
+                materials={materials} 
+                expenses={expenses} 
+                projects={projects} 
+                equipment={equipment} 
+                users={users}
+                tasks={tasks}
+                manpowerAgents={manpowerAgents}
+                onUpdateUser={onUpdateUser} 
+                onNavigate={setActiveView}
+                onUpdateExpense={onUpdateExpense}
+            />;
   }
 };
 
 
 const App: React.FC = () => {
-    return (
-        <LanguageProvider>
-            <AppContent />
-        </LanguageProvider>
-    );
+  return (
+    <LanguageProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </LanguageProvider>
+  );
 };
 
 export default App;

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TASKS as INITIAL_TASKS, USERS as STATIC_USERS } from '../constants';
 import { Card, ProgressBar, StatusBadge } from './common';
 import GanttChart from './GanttChart';
-import { Project, Task, TaskStatus, Expense, Material, User, Role, Equipment, Conversation, Message, ManpowerAgent, ProjectStatus, EquipmentStatus, ExpenseCategory, ExpenseStatus, AttendanceStatus } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Project, Task, TaskStatus, Expense, Material, User, Role, Equipment, Conversation, Message, ManpowerAgent, ProjectStatus, EquipmentStatus, ExpenseCategory, ExpenseStatus, AttendanceStatus, DailyLog, DailyLogEntry } from '../types';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import * as Icons from './icons';
+import { useTheme } from '../App';
 
 interface ProjectFormModalProps {
     isOpen: boolean;
@@ -68,42 +69,42 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({ isOpen, onClose, on
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-xl font-bold text-dark-text mb-6">{project ? 'تعديل مشروع' : 'إضافة مشروع جديد'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-xl font-bold text-dark-text dark:text-dark-text-primary mb-6">{project ? 'تعديل مشروع' : 'إضافة مشروع جديد'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">اسم المشروع</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">اسم المشروع</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">العميل</label>
-                            <input type="text" value={client} onChange={e => setClient(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">العميل</label>
+                            <input type="text" value={client} onChange={e => setClient(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">تاريخ البدء</label>
-                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تاريخ البدء</label>
+                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">تاريخ الانتهاء</label>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تاريخ الانتهاء</label>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الميزانية (BHD)</label>
-                            <input type="number" value={budget} onChange={e => setBudget(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الميزانية (BHD)</label>
+                            <input type="number" value={budget} onChange={e => setBudget(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الحالة</label>
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الحالة</label>
                             {/* FIX: Use English keys for option values and display translated text. */}
-                            <select value={status} onChange={e => setStatus(e.target.value as any)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <select value={status} onChange={e => setStatus(e.target.value as any)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                 <option value="OnTrack">في المسار الصحيح</option>
                                 <option value="AtRisk">في خطر</option>
                                 <option value="Completed">مكتمل</option>
                             </select>
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ المشروع</button>
                     </div>
                 </form>
@@ -182,7 +183,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, tasks, use
     return (
         <div>
              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-dark-text">المشاريع</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">المشاريع</h1>
                 {currentUser.role === Role.ProjectManager && (
                     <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                         <Icons.PlusIcon className="w-5 h-5" />
@@ -193,23 +194,23 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, tasks, use
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 space-y-4">
                     {projects.map(project => (
-                        <div key={project.id} onClick={() => setSelectedProject(project)} className={`cursor-pointer p-4 rounded-lg border-2 transition-all duration-300 ${selectedProject?.id === project.id ? 'border-primary bg-teal-50 shadow-lg' : 'border-transparent bg-white shadow-md hover:shadow-lg hover:-translate-y-1'}`}>
+                        <div key={project.id} onClick={() => setSelectedProject(project)} className={`cursor-pointer p-4 rounded-lg border-2 transition-all duration-300 ${selectedProject?.id === project.id ? 'border-primary bg-teal-50 dark:bg-primary/20 shadow-lg' : 'border-transparent bg-white dark:bg-dark-card shadow-md hover:shadow-lg hover:-translate-y-1'}`}>
                             <div className="flex justify-between items-start">
                                <div>
-                                   <h3 className="font-bold text-dark-text">{project.name}</h3>
-                                   <p className="text-sm text-light-text mt-1">{project.client}</p>
+                                   <h3 className="font-bold text-dark-text dark:text-dark-text-primary">{project.name}</h3>
+                                   <p className="text-sm text-light-text dark:text-dark-text-secondary mt-1">{project.client}</p>
                                </div>
                                <div className="flex items-center gap-1 flex-shrink-0">
                                    <StatusBadge status={project.status} type="Project" />
                                    {currentUser.role === Role.ProjectManager && (
                                        <>
-                                        <button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(project); }} className="text-blue-500 hover:text-blue-700 p-1" title="تعديل"><Icons.EditIcon className="w-4 h-4" /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); setDeletingProject(project); }} className="text-red-500 hover:text-red-700 p-1" title="حذف"><Icons.DeleteIcon className="w-4 h-4" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(project); }} className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1" title="تعديل"><Icons.EditIcon className="w-4 h-4" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); setDeletingProject(project); }} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1" title="حذف"><Icons.DeleteIcon className="w-4 h-4" /></button>
                                        </>
                                    )}
                                </div>
                             </div>
-                            <div className="mt-3 flex justify-between items-center text-sm">
+                            <div className="mt-3 flex justify-between items-center text-sm dark:text-dark-text-secondary">
                                 <span>الإنجاز</span>
                                 <span className="font-semibold">{project.completion}%</span>
                             </div>
@@ -220,17 +221,17 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, tasks, use
                 <div className="lg:col-span-2">
                     {selectedProject ? (
                         <Card>
-                            <h2 className="text-2xl font-bold mb-1">{selectedProject.name}</h2>
-                            <p className="text-medium-text mb-4">العميل: {selectedProject.client}</p>
+                            <h2 className="text-2xl font-bold mb-1 dark:text-dark-text-primary">{selectedProject.name}</h2>
+                            <p className="text-medium-text dark:text-dark-text-secondary mb-4">العميل: {selectedProject.client}</p>
                             
                             {currentUser.role === Role.ProjectManager && (
                                 <div className="grid grid-cols-2 gap-4 mb-6 text-center">
                                     <div>
-                                        <p className="text-sm text-light-text">الميزانية</p>
+                                        <p className="text-sm text-light-text dark:text-dark-text-secondary">الميزانية</p>
                                         <p className="text-xl font-semibold text-green-600">{formatCurrency(selectedProject.budget)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-light-text">المصروف</p>
+                                        <p className="text-sm text-light-text dark:text-dark-text-secondary">المصروف</p>
                                         <p className="text-xl font-semibold text-red-600">{formatCurrency(selectedProject.spent)}</p>
                                     </div>
                                 </div>
@@ -242,7 +243,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, tasks, use
                                 endDate={new Date(selectedProject.endDate)} 
                             />
                             {currentUser.role === Role.ProjectManager && (
-                                <div className="mt-6 text-center border-t pt-4">
+                                <div className="mt-6 text-center border-t dark:border-dark-border pt-4">
                                     <button
                                         onClick={handleOpenAddTaskModal}
                                         className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors mx-auto"
@@ -255,7 +256,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ projects, tasks, use
                         </Card>
                     ) : (
                         <Card>
-                            <p className="text-center text-medium-text">الرجاء تحديد مشروع أو إضافة مشروع جديد.</p>
+                            <p className="text-center text-medium-text dark:text-dark-text-secondary">الرجاء تحديد مشروع أو إضافة مشروع جديد.</p>
                         </Card>
                     )}
                 </div>
@@ -341,20 +342,20 @@ const TaskFormModal = ({ isOpen, onClose, onSave, task, projects, users, default
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-xl font-bold text-dark-text mb-6">{task ? 'تعديل مهمة' : 'إضافة مهمة جديدة'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-xl font-bold text-dark-text dark:text-dark-text-primary mb-6">{task ? 'تعديل مهمة' : 'إضافة مهمة جديدة'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-medium-text mb-1">عنوان المهمة</label>
-                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">عنوان المهمة</label>
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">المشروع</label>
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">المشروع</label>
                             <select 
                                 value={projectId} 
                                 onChange={e => setProjectId(e.target.value)} 
-                                className="w-full border bg-white border-gray-300 rounded-md p-2 disabled:bg-gray-100 disabled:text-gray-500" 
+                                className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500" 
                                 required 
                                 disabled={!!defaultProjectId && !task}
                             >
@@ -362,31 +363,31 @@ const TaskFormModal = ({ isOpen, onClose, onSave, task, projects, users, default
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">إسناد إلى</label>
-                            <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="w-full border bg-white border-gray-300 rounded-md p-2" required>
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">إسناد إلى</label>
+                            <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2" required>
                                 <option value="">اختر مستخدم...</option>
                                {assignableUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">تاريخ البدء</label>
-                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تاريخ البدء</label>
+                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">تاريخ الانتهاء</label>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تاريخ الانتهاء</label>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border border-gray-300 rounded-md p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white" required />
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الأولوية</label>
-                            <select value={priority} onChange={e => setPriority(e.target.value as any)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الأولوية</label>
+                            <select value={priority} onChange={e => setPriority(e.target.value as any)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                 <option value="High">عالية</option>
                                 <option value="Medium">متوسطة</option>
                                 <option value="Low">منخفضة</option>
                             </select>
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ المهمة</button>
                     </div>
                 </form>
@@ -455,16 +456,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, project, user, currentUser, o
     };
 
     const statusSelectClasses: { [key: string]: string } = {
-        [TaskStatus.Completed]: 'bg-green-100 text-green-800 border-green-200',
-        [TaskStatus.InProgress]: 'bg-blue-100 text-blue-800 border-blue-200',
-        [TaskStatus.Pending]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        [TaskStatus.Overdue]: 'bg-red-100 text-red-800 border-red-200',
+        [TaskStatus.Completed]: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700',
+        [TaskStatus.InProgress]: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700',
+        [TaskStatus.Pending]: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700',
+        [TaskStatus.Overdue]: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700',
     };
 
     return (
-        <div className={`p-4 rounded-lg shadow-md bg-white border-r-4 ${priorityColors[task.priority]}`}>
+        <div className={`p-4 rounded-lg shadow-md bg-white dark:bg-dark-card border-r-4 ${priorityColors[task.priority]}`}>
             <div className="flex justify-between items-start mb-2">
-                <h4 className="font-bold text-dark-text">{task.title}</h4>
+                <h4 className="font-bold text-dark-text dark:text-dark-text-primary">{task.title}</h4>
                 <select
                     value={task.status}
                     onChange={handleStatusChange}
@@ -477,24 +478,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, project, user, currentUser, o
                     <option value={TaskStatus.Completed}>مكتملة</option>
                 </select>
             </div>
-            <div className="space-y-2 text-sm text-medium-text">
+            <div className="space-y-2 text-sm text-medium-text dark:text-dark-text-secondary">
                 <p>
-                    <span className="font-semibold text-light-text">المشروع:</span> {project?.name || 'غير محدد'}
+                    <span className="font-semibold text-light-text dark:text-slate-400">المشروع:</span> {project?.name || 'غير محدد'}
                 </p>
                 <div className="flex items-center gap-2">
-                    <span className="font-semibold text-light-text">المسؤول:</span>
+                    <span className="font-semibold text-light-text dark:text-slate-400">المسؤول:</span>
                     {user ? <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" /> : null}
                     <span>{user?.name || 'غير محدد'}</span>
                 </div>
                  <p>
-                    <span className="font-semibold text-light-text">تاريخ الاستحقاق:</span> {task.endDate}
+                    <span className="font-semibold text-light-text dark:text-slate-400">تاريخ الاستحقاق:</span> {task.endDate}
                 </p>
             </div>
             
             <div className="mt-4">
-                <div className="flex justify-between items-center text-xs text-light-text mb-1">
+                <div className="flex justify-between items-center text-xs text-light-text dark:text-slate-400 mb-1">
                     <span>التقدم</span>
-                    <span className="font-semibold text-dark-text">{task.completion}%</span>
+                    <span className="font-semibold text-dark-text dark:text-dark-text-primary">{task.completion}%</span>
                 </div>
                 <ProgressBar value={task.completion} />
                  <input
@@ -505,14 +506,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, project, user, currentUser, o
                     value={task.completion}
                     onChange={handleCompletionChange}
                     disabled={!isAuthorizedToEdit}
-                    className={`w-full h-2 bg-gray-200 rounded-lg appearance-none mt-2 accent-primary ${isAuthorizedToEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                    className={`w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none mt-2 accent-primary ${isAuthorizedToEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                 />
             </div>
             
             {currentUser.role === Role.ProjectManager && (
-                 <div className="mt-4 pt-3 border-t flex justify-end gap-2">
-                    <button onClick={() => onEdit(task)} className="text-blue-600 hover:text-blue-800 p-1" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                    <button onClick={() => onDelete(task)} className="text-red-600 hover:text-red-800 p-1" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                 <div className="mt-4 pt-3 border-t dark:border-dark-border flex justify-end gap-2">
+                    <button onClick={() => onEdit(task)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                    <button onClick={() => onDelete(task)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                 </div>
             )}
         </div>
@@ -585,8 +586,8 @@ export const TasksPage = ({ projects, tasks, users, currentUser, onAddTask, onUp
     const renderTaskList = (title: string, status: TaskStatus) => {
         const filteredTasks = filteredAndSortedTasks.filter(t => t.status === status);
         return (
-            <Card className="flex-1 min-w-[320px] bg-gray-50">
-                <h3 className="font-bold text-lg mb-4 text-dark-text">{title} ({filteredTasks.length})</h3>
+            <Card className="flex-1 min-w-[320px] bg-gray-50 dark:bg-slate-800/50">
+                <h3 className="font-bold text-lg mb-4 text-dark-text dark:text-dark-text-primary">{title} ({filteredTasks.length})</h3>
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
                     {filteredTasks.map(task => (
                         <TaskCard 
@@ -608,7 +609,7 @@ export const TasksPage = ({ projects, tasks, users, currentUser, onAddTask, onUp
     return (
         <div>
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-dark-text">إدارة المهام</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">إدارة المهام</h1>
                 {currentUser.role === Role.ProjectManager && (
                     <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                         <Icons.PlusIcon className="w-5 h-5" />
@@ -617,10 +618,10 @@ export const TasksPage = ({ projects, tasks, users, currentUser, onAddTask, onUp
                 )}
             </div>
 
-            <div className="flex flex-wrap gap-4 mb-6 p-4 bg-white rounded-lg shadow-sm border items-end">
+            <div className="flex flex-wrap gap-4 mb-6 p-4 bg-white dark:bg-dark-card rounded-lg shadow-sm border dark:border-dark-border items-end">
                 <div className="flex-grow">
-                    <label htmlFor="project-filter" className="block text-sm font-medium text-medium-text mb-1">تصفية حسب المشروع</label>
-                    <select id="project-filter" name="project" value={filters.project} onChange={handleFilterChange} className="w-full bg-white border border-gray-300 rounded-md p-2 text-sm">
+                    <label htmlFor="project-filter" className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تصفية حسب المشروع</label>
+                    <select id="project-filter" name="project" value={filters.project} onChange={handleFilterChange} className="w-full bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border border-gray-300 rounded-md p-2 text-sm">
                         <option value="all">كل المشاريع</option>
                         {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
@@ -628,8 +629,8 @@ export const TasksPage = ({ projects, tasks, users, currentUser, onAddTask, onUp
 
                 {isManager && (
                     <div className="flex-grow">
-                        <label htmlFor="assignee-filter" className="block text-sm font-medium text-medium-text mb-1">تصفية حسب المسؤول</label>
-                        <select id="assignee-filter" name="assignee" value={filters.assignee} onChange={handleFilterChange} className="w-full bg-white border border-gray-300 rounded-md p-2 text-sm">
+                        <label htmlFor="assignee-filter" className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تصفية حسب المسؤول</label>
+                        <select id="assignee-filter" name="assignee" value={filters.assignee} onChange={handleFilterChange} className="w-full bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border border-gray-300 rounded-md p-2 text-sm">
                             <option value="all">كل المستخدمين</option>
                             {assignableUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                         </select>
@@ -637,8 +638,8 @@ export const TasksPage = ({ projects, tasks, users, currentUser, onAddTask, onUp
                 )}
 
                 <div className="flex-grow">
-                    <label htmlFor="sort-by" className="block text-sm font-medium text-medium-text mb-1">ترتيب حسب</label>
-                    <select id="sort-by" value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-white border border-gray-300 rounded-md p-2 text-sm">
+                    <label htmlFor="sort-by" className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">ترتيب حسب</label>
+                    <select id="sort-by" value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border border-gray-300 rounded-md p-2 text-sm">
                         <option value="endDate">تاريخ الاستحقاق</option>
                         <option value="priority">الأولوية</option>
                     </select>
@@ -685,11 +686,11 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ isOpen, onClose
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                <h3 className="text-lg font-bold text-dark-text">{title}</h3>
-                <div className="mt-4 text-medium-text">{children}</div>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-sm w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary">{title}</h3>
+                <div className="mt-4 text-medium-text dark:text-dark-text-secondary">{children}</div>
                 <div className="mt-6 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300 transition-colors">
+                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500 transition-colors">
                         إلغاء
                     </button>
                     <button onClick={onConfirm} className="px-4 py-2 bg-secondary text-white rounded-md hover:bg-orange-600 transition-colors">
@@ -769,28 +770,28 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, expense, projects, material
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-lg font-bold text-dark-text mb-6">{expense ? 'تعديل المصروف' : 'إضافة مصروف جديد'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-6">{expense ? 'تعديل المصروف' : 'إضافة مصروف جديد'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الوصف</label>
-                            <input type="text" value={description} onChange={e => setDescription(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الوصف</label>
+                            <input type="text" value={description} onChange={e => setDescription(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">المبلغ (BHD)</label>
-                            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">المبلغ (BHD)</label>
+                            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">المشروع</label>
-                            <select value={projectId} onChange={e => setProjectId(e.target.value)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">المشروع</label>
+                            <select value={projectId} onChange={e => setProjectId(e.target.value)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الفئة</label>
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الفئة</label>
                              {/* FIX: Use English keys for option values and display translated text. */}
-                             <select value={category} onChange={e => { setCategory(e.target.value as any); setMaterialId(''); setMaterialQuantity(''); }} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                             <select value={category} onChange={e => { setCategory(e.target.value as any); setMaterialId(''); setMaterialQuantity(''); }} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                <option value="Labor">عمالة</option>
                                <option value="Materials">مواد</option>
                                <option value="Machinery">آليات</option>
@@ -800,18 +801,18 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, expense, projects, material
                     </div>
 
                     {category === 'Materials' && !expense && (
-                        <div className="p-3 bg-teal-50/50 border border-primary/20 rounded-md space-y-4">
-                             <label className="block text-sm font-medium text-medium-text">المادة</label>
-                             <select value={materialId} onChange={e => setMaterialId(e.target.value)} className="w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white" required>
+                        <div className="p-3 bg-teal-50/50 dark:bg-primary/10 border border-primary/20 rounded-md space-y-4">
+                             <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary">المادة</label>
+                             <select value={materialId} onChange={e => setMaterialId(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md shadow-sm p-2 bg-white dark:bg-slate-700 dark:text-white" required>
                                  <option value="">اختر مادة...</option>
                                  {materials.map(m => <option key={m.id} value={m.id}>{m.name} (المتوفر: {m.quantity})</option>)}
                              </select>
-                             <label className="block text-sm font-medium text-medium-text">الكمية المستهلكة</label>
-                             <input type="number" value={materialQuantity} onChange={e => setMaterialQuantity(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                             <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary">الكمية المستهلكة</label>
+                             <input type="number" value={materialQuantity} onChange={e => setMaterialQuantity(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                     )}
-                    <div className="mt-6 flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ</button>
                     </div>
                 </form>
@@ -821,13 +822,13 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, expense, projects, material
 };
 
 const FinancialKpiCard: React.FC<{ title: string; value: string; icon: React.FC<{className?: string}> }> = ({ title, value, icon: Icon }) => (
-    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center">
+    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-md border border-gray-100 dark:border-dark-border flex items-center">
         <div className="p-3 rounded-full bg-primary/10 mr-4">
             <Icon className="w-6 h-6 text-primary" />
         </div>
         <div>
-            <h4 className="font-semibold text-medium-text text-sm">{title}</h4>
-            <p className="text-2xl font-bold text-dark-text">{value}</p>
+            <h4 className="font-semibold text-medium-text dark:text-dark-text-secondary text-sm">{title}</h4>
+            <p className="text-2xl font-bold text-dark-text dark:text-dark-text-primary">{value}</p>
         </div>
     </div>
 );
@@ -843,6 +844,7 @@ interface FinancialsPageProps {
 }
 
 export const FinancialsPage: React.FC<FinancialsPageProps> = ({ projects, expenses, onAddExpense, onUpdateExpense, onDeleteExpense, materials }) => {
+    const { theme } = useTheme();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
@@ -915,11 +917,16 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ projects, expens
     const totalSpent = expenses.reduce((sum, e) => e.status === 'Approved' ? sum + e.amount : sum, 0);
     const pendingAmount = expenses.reduce((sum, e) => e.status === 'Pending' ? sum + e.amount : sum, 0);
 
+    const statusSelectClasses: { [key: string]: string } = {
+        'Approved': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700',
+        'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700',
+        'Pending': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700',
+    };
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                 <h1 className="text-3xl font-bold text-dark-text">نظرة مالية عامة</h1>
+                 <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">نظرة مالية عامة</h1>
                  <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                     <Icons.PlusIcon className="w-5 h-5" />
                     <span>إضافة مصروف جديد</span>
@@ -935,7 +942,7 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ projects, expens
                 {pendingMaterial && (
                      <p>
                         إضافة هذا المصروف سيؤدي إلى انخفاض مخزون مادة 
-                        <span className="font-bold text-dark-text"> "{pendingMaterial.name}" </span> 
+                        <span className="font-bold text-dark-text dark:text-dark-text-primary"> "{pendingMaterial.name}" </span> 
                         إلى ما دون الحد الأدنى. هل أنت متأكد أنك تريد المتابعة؟
                     </p>
                 )}
@@ -961,28 +968,38 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ projects, expens
                     <Card title="جميع المصاريف">
                         <div className="overflow-x-auto max-h-96">
                             <table className="min-w-full text-sm text-right">
-                               <thead className="bg-gray-50 sticky top-0">
+                               <thead className="bg-gray-50 dark:bg-slate-700 sticky top-0">
                                     <tr>
-                                        <th className="p-3 text-right font-semibold text-medium-text">الوصف</th>
-                                        <th className="p-3 text-right font-semibold text-medium-text">المشروع</th>
-                                        <th className="p-3 text-right font-semibold text-medium-text">المبلغ</th>
-                                        <th className="p-3 text-right font-semibold text-medium-text">الحالة</th>
-                                        <th className="p-3 text-center font-semibold text-medium-text">إجراءات</th>
+                                        <th className="p-3 text-right font-semibold text-medium-text dark:text-dark-text-secondary">الوصف</th>
+                                        <th className="p-3 text-right font-semibold text-medium-text dark:text-dark-text-secondary">المشروع</th>
+                                        <th className="p-3 text-right font-semibold text-medium-text dark:text-dark-text-secondary">المبلغ</th>
+                                        <th className="p-3 text-right font-semibold text-medium-text dark:text-dark-text-secondary">الحالة</th>
+                                        <th className="p-3 text-center font-semibold text-medium-text dark:text-dark-text-secondary">إجراءات</th>
                                     </tr>
                                </thead>
-                               <tbody>
+                               <tbody className="dark:text-dark-text-secondary">
                                     {expenses.map(e => {
                                         const project = projects.find(p => p.id === e.projectId);
                                         return (
-                                            <tr key={e.id} className="border-b hover:bg-gray-50">
+                                            <tr key={e.id} className="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-600/50">
                                                 <td className="p-3">{e.description}</td>
-                                                <td className="p-3 text-xs text-light-text">{project?.name || 'غير محدد'}</td>
+                                                <td className="p-3 text-xs text-light-text dark:text-slate-400">{project?.name || 'غير محدد'}</td>
                                                 <td className="p-3 font-medium">{formatCurrencyFull(e.amount)}</td>
-                                                <td className="p-3"><StatusBadge status={e.status} type="Expense" /></td>
+                                                <td className="p-3">
+                                                    <select
+                                                        value={e.status}
+                                                        onChange={(event) => onUpdateExpense({ ...e, status: event.target.value as ExpenseStatus })}
+                                                        className={`px-2 py-1 text-xs font-medium rounded-md border appearance-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer ${statusSelectClasses[e.status] || 'bg-gray-100 text-gray-800'}`}
+                                                    >
+                                                        <option value="Approved">موافق عليه</option>
+                                                        <option value="Rejected">مرفوض</option>
+                                                        <option value="Pending">قيد الانتظار</option>
+                                                    </select>
+                                                </td>
                                                 <td className="p-3">
                                                     <div className="flex justify-center gap-4">
-                                                        <button onClick={() => handleOpenEditModal(e)} className="text-blue-600 hover:text-blue-800" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                                                        <button onClick={() => setDeletingExpense(e)} className="text-red-600 hover:text-red-800" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                                                        <button onClick={() => handleOpenEditModal(e)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                                                        <button onClick={() => setDeletingExpense(e)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -998,8 +1015,15 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ projects, expens
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12, fill: '#475569' }} axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{fill: '#F8FAFC'}} formatter={(value) => formatCurrencyFull(Number(value))} />
+                                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12, fill: theme === 'dark' ? '#94A3B8' : '#475569' }} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                    cursor={{fill: theme === 'dark' ? '#475569' : '#F8FAFC'}} 
+                                    formatter={(value) => formatCurrencyFull(Number(value))}
+                                    contentStyle={{ 
+                                        backgroundColor: theme === 'dark' ? '#334155' : '#FFFFFF',
+                                        borderColor: theme === 'dark' ? '#475569' : '#CCCCCC'
+                                    }}
+                                />
                                 <Bar dataKey="amount" name="المبلغ" fill="#0D9488" barSize={20} radius={[0, 5, 5, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -1063,29 +1087,29 @@ const MaterialFormModal: React.FC<MaterialFormModalProps> = ({ isOpen, onClose, 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-lg font-bold text-dark-text mb-6">{material ? 'تعديل مادة' : 'إضافة مادة جديدة'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-6">{material ? 'تعديل مادة' : 'إضافة مادة جديدة'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">اسم المادة</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">اسم المادة</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الوحدة</label>
-                            <input type="text" value={unit} onChange={e => setUnit(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الوحدة</label>
+                            <input type="text" value={unit} onChange={e => setUnit(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الكمية الحالية</label>
-                            <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الكمية الحالية</label>
+                            <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">حد التنبيه</label>
-                            <input type="number" value={threshold} onChange={e => setThreshold(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">حد التنبيه</label>
+                            <input type="number" value={threshold} onChange={e => setThreshold(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ</button>
                     </div>
                 </form>
@@ -1136,7 +1160,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ materials, onAdd, 
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-dark-text">إدارة المخزون</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">إدارة المخزون</h1>
                 <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                     <Icons.PlusIcon className="w-5 h-5" />
                     <span>إضافة مادة جديدة</span>
@@ -1146,17 +1170,17 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ materials, onAdd, 
             <Card>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-right">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="p-3 font-semibold text-medium-text">اسم المادة</th>
-                                <th className="p-3 font-semibold text-medium-text">الكمية المتوفرة</th>
-                                <th className="p-3 font-semibold text-medium-text">حد التنبيه</th>
-                                <th className="p-3 font-semibold text-medium-text text-center">الإجراءات</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">اسم المادة</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">الكمية المتوفرة</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">حد التنبيه</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary text-center">الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="dark:text-dark-text-secondary">
                             {materials.map(material => (
-                                <tr key={material.id} className="border-b hover:bg-gray-50">
+                                <tr key={material.id} className="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-600/50">
                                     <td className="p-3 font-medium">{material.name}</td>
                                     <td className="p-3">
                                         <span className={material.quantity <= material.threshold ? 'text-red-500 font-bold' : ''}>
@@ -1166,8 +1190,8 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ materials, onAdd, 
                                     <td className="p-3">{material.threshold} {material.unit}</td>
                                     <td className="p-3">
                                         <div className="flex justify-center gap-4">
-                                            <button onClick={() => handleOpenEditModal(material)} className="text-blue-600 hover:text-blue-800" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                                            <button onClick={() => setDeletingMaterial(material)} className="text-red-600 hover:text-red-800" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => handleOpenEditModal(material)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => setDeletingMaterial(material)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1243,36 +1267,36 @@ const EquipmentFormModal: React.FC<EquipmentFormModalProps> = ({ isOpen, onClose
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-lg font-bold text-dark-text mb-6">{equipmentItem ? 'تعديل معدة' : 'إضافة معدة جديدة'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-6">{equipmentItem ? 'تعديل معدة' : 'إضافة معدة جديدة'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">اسم المعدة</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">اسم المعدة</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الحالة</label>
-                            <select value={status} onChange={e => setStatus(e.target.value as EquipmentStatus)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الحالة</label>
+                            <select value={status} onChange={e => setStatus(e.target.value as EquipmentStatus)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                 <option value="Available">متاحة</option>
                                 <option value="InUse">قيد الاستخدام</option>
                                 <option value="Maintenance">تحت الصيانة</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">المشغل</label>
-                            <select value={operatorId} onChange={e => setOperatorId(e.target.value)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">المشغل</label>
+                            <select value={operatorId} onChange={e => setOperatorId(e.target.value)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                 <option value="">لا يوجد</option>
                                 {operators.map(op => <option key={op.id} value={op.id}>{op.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">تاريخ الصيانة التالي</label>
-                            <input type="date" value={nextMaintenance} onChange={e => setNextMaintenance(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تاريخ الصيانة التالي</label>
+                            <input type="date" value={nextMaintenance} onChange={e => setNextMaintenance(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ</button>
                     </div>
                 </form>
@@ -1324,7 +1348,7 @@ export const EquipmentPage: React.FC<EquipmentPageProps> = ({ equipment, users, 
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-dark-text">إدارة المعدات</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">إدارة المعدات</h1>
                 <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                     <Icons.PlusIcon className="w-5 h-5" />
                     <span>إضافة معدة جديدة</span>
@@ -1334,28 +1358,28 @@ export const EquipmentPage: React.FC<EquipmentPageProps> = ({ equipment, users, 
             <Card>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-right">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="p-3 font-semibold text-medium-text">اسم المعدة</th>
-                                <th className="p-3 font-semibold text-medium-text">الحالة</th>
-                                <th className="p-3 font-semibold text-medium-text">المشغل الحالي</th>
-                                <th className="p-3 font-semibold text-medium-text">الصيانة التالية</th>
-                                <th className="p-3 font-semibold text-medium-text text-center">الإجراءات</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">اسم المعدة</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">الحالة</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">المشغل الحالي</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">الصيانة التالية</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary text-center">الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="dark:text-dark-text-secondary">
                             {equipment.map(item => {
                                 const operator = users.find(u => u.id === item.operatorId);
                                 return (
-                                    <tr key={item.id} className="border-b hover:bg-gray-50">
+                                    <tr key={item.id} className="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-600/50">
                                         <td className="p-3 font-medium">{item.name}</td>
                                         <td className="p-3"><StatusBadge status={item.status} type="Equipment" /></td>
                                         <td className="p-3">{operator?.name || 'لا يوجد'}</td>
                                         <td className="p-3">{item.nextMaintenance}</td>
                                         <td className="p-3">
                                             <div className="flex justify-center gap-4">
-                                                <button onClick={() => handleOpenEditModal(item)} className="text-blue-600 hover:text-blue-800" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                                                <button onClick={() => setDeletingItem(item)} className="text-red-600 hover:text-red-800" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => handleOpenEditModal(item)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                                                <button onClick={() => setDeletingItem(item)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1432,29 +1456,29 @@ const ManpowerFormModal: React.FC<ManpowerFormModalProps> = ({ isOpen, onClose, 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-lg font-bold text-dark-text mb-6">{agent ? 'تعديل بيانات العامل' : 'إضافة عامل جديد'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-6">{agent ? 'تعديل بيانات العامل' : 'إضافة عامل جديد'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الاسم</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الاسم</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الرقم الشخصي (CPR)</label>
-                            <input type="text" value={cpr} onChange={e => setCpr(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الرقم الشخصي (CPR)</label>
+                            <input type="text" value={cpr} onChange={e => setCpr(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">المهنة</label>
-                            <input type="text" value={position} onChange={e => setPosition(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">المهنة</label>
+                            <input type="text" value={position} onChange={e => setPosition(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">مكان العمل</label>
-                            <input type="text" value={workplace} onChange={e => setWorkplace(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">مكان العمل</label>
+                            <input type="text" value={workplace} onChange={e => setWorkplace(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ</button>
                     </div>
                 </form>
@@ -1472,13 +1496,13 @@ interface ManpowerPageProps {
 }
 
 const ManpowerKpiCard: React.FC<{ title: string; value: string | number; icon: React.FC<{className?: string}>; iconBgColor: string }> = ({ title, value, icon: Icon, iconBgColor }) => (
-    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 flex items-center">
+    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-md border border-gray-100 dark:border-dark-border flex items-center">
         <div className={`p-3 rounded-full ${iconBgColor} mr-4`}>
             <Icon className="w-6 h-6 text-white" />
         </div>
         <div>
-            <h4 className="font-semibold text-medium-text text-sm">{title}</h4>
-            <p className="text-2xl font-bold text-dark-text">{value}</p>
+            <h4 className="font-semibold text-medium-text dark:text-dark-text-secondary text-sm">{title}</h4>
+            <p className="text-2xl font-bold text-dark-text dark:text-dark-text-primary">{value}</p>
         </div>
     </div>
 );
@@ -1549,7 +1573,7 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-4">
-                <h1 className="text-3xl font-bold text-dark-text">إدارة القوى العاملة</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">إدارة القوى العاملة</h1>
                 {canManage && (
                     <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                         <Icons.PlusIcon className="w-5 h-5" />
@@ -1566,8 +1590,8 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                     <ul className="space-y-2">
                         {topProfessions.map(p => (
                             <li key={p.name} className="flex justify-between items-center text-sm">
-                                <span className="text-medium-text">{p.name}</span>
-                                <span className="font-semibold text-dark-text bg-gray-100 px-2 py-0.5 rounded">{p.count}</span>
+                                <span className="text-medium-text dark:text-dark-text-secondary">{p.name}</span>
+                                <span className="font-semibold text-dark-text dark:text-dark-text-primary bg-gray-100 dark:bg-slate-600 px-2 py-0.5 rounded">{p.count}</span>
                             </li>
                         ))}
                     </ul>
@@ -1584,7 +1608,7 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                             placeholder="بحث بالاسم أو الرقم الشخصي..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border border-gray-300 rounded-md p-2"
+                            className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white"
                         />
                     </div>
                     <div className="flex-grow min-w-[150px]">
@@ -1593,7 +1617,7 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                             id="profession-filter"
                             value={professionFilter}
                             onChange={(e) => setProfessionFilter(e.target.value)}
-                            className="w-full border bg-white border-gray-300 rounded-md p-2"
+                            className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2"
                         >
                             <option value="all">كل المهن</option>
                             {professions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1605,7 +1629,7 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                             id="attendance-filter"
                             value={attendanceFilter}
                             onChange={(e) => setAttendanceFilter(e.target.value)}
-                            className="w-full border bg-white border-gray-300 rounded-md p-2"
+                            className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2"
                         >
                             <option value="all">كل الحالات</option>
                             <option value="Present">حاضر</option>
@@ -1625,20 +1649,20 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                                         {agent.name.charAt(0)}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-dark-text">{agent.name}</h3>
-                                        <p className="text-sm text-medium-text">{agent.position}</p>
+                                        <h3 className="font-bold text-dark-text dark:text-dark-text-primary">{agent.name}</h3>
+                                        <p className="text-sm text-medium-text dark:text-dark-text-secondary">{agent.position}</p>
                                     </div>
                                 </div>
                                 <StatusBadge status={agent.attendance} type="Attendance" />
                             </div>
-                            <div className="mt-4 space-y-2 text-sm text-light-text border-t pt-3">
-                                <p><span className="font-semibold text-medium-text">مكان العمل:</span> {agent.workplace}</p>
-                                <p><span className="font-semibold text-medium-text">الرقم الشخصي:</span> {agent.cpr}</p>
-                                <p><span className="font-semibold text-medium-text">تاريخ الإضافة:</span> {agent.dateAdded}</p>
+                            <div className="mt-4 space-y-2 text-sm text-light-text dark:text-slate-400 border-t dark:border-dark-border pt-3">
+                                <p><span className="font-semibold text-medium-text dark:text-dark-text-secondary">مكان العمل:</span> {agent.workplace}</p>
+                                <p><span className="font-semibold text-medium-text dark:text-dark-text-secondary">الرقم الشخصي:</span> {agent.cpr}</p>
+                                <p><span className="font-semibold text-medium-text dark:text-dark-text-secondary">تاريخ الإضافة:</span> {agent.dateAdded}</p>
                             </div>
                         </div>
                          {canManage && (
-                            <div className="bg-gray-50 p-3 mt-4 flex justify-between items-center gap-2">
+                            <div className="bg-gray-50 dark:bg-slate-700/50 p-3 mt-4 flex justify-between items-center gap-2">
                                 <div className="flex gap-2">
                                      <button onClick={() => handleUpdateAttendance(agent, AttendanceStatus.Present)} disabled={agent.attendance === 'Present'} className="text-xs bg-green-500 text-white px-3 py-1.5 rounded hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed transition-colors">
                                         تسجيل حضور
@@ -1647,9 +1671,9 @@ export const ManpowerPage: React.FC<ManpowerPageProps> = ({ manpowerAgents, curr
                                         تسجيل غياب
                                     </button>
                                 </div>
-                                <div className="flex gap-1 border-s ps-2">
-                                    <button onClick={() => handleOpenEditModal(agent)} className="text-blue-600 hover:text-blue-800 p-1" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                                    <button onClick={() => setDeletingAgent(agent)} className="text-red-600 hover:text-red-800 p-1" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                                <div className="flex gap-1 border-s ps-2 dark:border-dark-border">
+                                    <button onClick={() => handleOpenEditModal(agent)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-1" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                                    <button onClick={() => setDeletingAgent(agent)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                                 </div>
                             </div>
                         )}
@@ -1687,16 +1711,19 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
     const [name, setName] = useState('');
     const [role, setRole] = useState<Role>(Role.Worker);
     const [avatar, setAvatar] = useState('');
+    const [password, setPassword] = useState('');
 
     useEffect(() => {
         if (user) {
             setName(user.name);
             setRole(user.role);
             setAvatar(user.avatar);
+            setPassword(''); // Clear password field for edit mode
         } else {
             setName('');
             setRole(Role.Worker);
             setAvatar(`https://picsum.photos/seed/${Date.now()}/100/100`);
+            setPassword(''); // Clear for new user
         }
     }, [user, isOpen]);
 
@@ -1705,36 +1732,139 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !role) return;
+        if (!user && !password) {
+            alert('يرجى إدخال كلمة مرور للمستخدم الجديد.');
+            return;
+        }
+        
         onSave({
             id: user?.id || Date.now(),
             name,
             role,
             avatar,
-            password: user?.password || 'password123'
+            password: user ? user.password : password
         });
         onClose();
     };
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                <h3 className="text-lg font-bold text-dark-text mb-6">{user ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}</h3>
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-6">{user ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الاسم</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الاسم</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الدور</label>
-                            <select value={role} onChange={e => setRole(e.target.value as Role)} className="w-full border bg-white border-gray-300 rounded-md p-2">
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الدور</label>
+                            <select value={role} onChange={e => setRole(e.target.value as Role)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2">
                                 {Object.values(Role).map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
                         </div>
                     </div>
-                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
+                    {!user && (
+                         <div>
+                            <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">كلمة المرور</label>
+                            <input 
+                                type="password" 
+                                value={password} 
+                                onChange={e => setPassword(e.target.value)} 
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" 
+                                required 
+                            />
+                        </div>
+                    )}
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+interface ChangePasswordModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (userId: number, newPassword: string) => void;
+    user: User | null;
+}
+
+const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose, onSave, user }) => {
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setPassword('');
+            setConfirmPassword('');
+            setError('');
+        }
+    }, [isOpen]);
+
+    if (!isOpen || !user) return null;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        if (password.length < 6) {
+            setError('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            setError('كلمتا المرور غير متطابقتين.');
+            return;
+        }
+        onSave(user.id, password);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-md w-full">
+                <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary mb-2">تغيير كلمة المرور لـ</h3>
+                <p className="text-medium-text dark:text-dark-text-secondary mb-6 font-semibold">{user.name}</p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">كلمة المرور الجديدة</label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <Icons.EyeSlashIcon className="h-5 w-5" /> : <Icons.EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">تأكيد كلمة المرور الجديدة</label>
+                        <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white"
+                            required
+                        />
+                    </div>
+
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">حفظ كلمة المرور</button>
                     </div>
                 </form>
             </div>
@@ -1744,15 +1874,18 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ isOpen, onClose, onSave, 
 
 interface UsersPageProps {
     users: User[];
+    currentUser: User;
     onAdd: (user: Omit<User, 'id'>) => void;
     onUpdate: (user: User) => void;
     onDelete: (userId: number) => void;
+    onUpdateUserPassword: (userId: number, newPassword: string) => void;
 }
 
-export const UsersPage: React.FC<UsersPageProps> = ({ users, onAdd, onUpdate, onDelete }) => {
+export const UsersPage: React.FC<UsersPageProps> = ({ users, currentUser, onAdd, onUpdate, onDelete, onUpdateUserPassword }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
+    const [changingPasswordUser, setChangingPasswordUser] = useState<User | null>(null);
 
     const handleOpenAddModal = () => {
         setEditingUser(null);
@@ -1784,7 +1917,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({ users, onAdd, onUpdate, on
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-dark-text">إدارة المستخدمين</h1>
+                <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">إدارة المستخدمين</h1>
                 <button onClick={handleOpenAddModal} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                     <Icons.PlusIcon className="w-5 h-5" />
                     <span>إضافة مستخدم جديد</span>
@@ -1793,16 +1926,16 @@ export const UsersPage: React.FC<UsersPageProps> = ({ users, onAdd, onUpdate, on
             <Card>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm text-right">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-slate-700">
                             <tr>
-                                <th className="p-3 font-semibold text-medium-text">المستخدم</th>
-                                <th className="p-3 font-semibold text-medium-text">الدور</th>
-                                <th className="p-3 font-semibold text-medium-text text-center">الإجراءات</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">المستخدم</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary">الدور</th>
+                                <th className="p-3 font-semibold text-medium-text dark:text-dark-text-secondary text-center">الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="dark:text-dark-text-secondary">
                             {users.map(user => (
-                                <tr key={user.id} className="border-b hover:bg-gray-50">
+                                <tr key={user.id} className="border-b dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-600/50">
                                     <td className="p-3">
                                         <div className="flex items-center gap-3">
                                             <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />
@@ -1812,8 +1945,11 @@ export const UsersPage: React.FC<UsersPageProps> = ({ users, onAdd, onUpdate, on
                                     <td className="p-3">{user.role}</td>
                                     <td className="p-3">
                                         <div className="flex justify-center gap-4">
-                                            <button onClick={() => handleOpenEditModal(user)} className="text-blue-600 hover:text-blue-800" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
-                                            <button onClick={() => setDeletingUser(user)} className="text-red-600 hover:text-red-800" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => handleOpenEditModal(user)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="تعديل"><Icons.EditIcon className="w-5 h-5" /></button>
+                                            {currentUser.role === Role.ProjectManager && (
+                                                <button onClick={() => setChangingPasswordUser(user)} className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300" title="تغيير كلمة المرور"><Icons.LockClosedIcon className="w-5 h-5" /></button>
+                                            )}
+                                            <button onClick={() => setDeletingUser(user)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" title="حذف"><Icons.DeleteIcon className="w-5 h-5" /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1821,26 +1957,397 @@ export const UsersPage: React.FC<UsersPageProps> = ({ users, onAdd, onUpdate, on
                         </tbody>
                     </table>
                 </div>
+                <UserFormModal 
+                    isOpen={isModalOpen} 
+                    onClose={() => setIsModalOpen(false)} 
+                    onSave={handleSaveUser} 
+                    user={editingUser}
+                />
+                <ChangePasswordModal 
+                    isOpen={!!changingPasswordUser}
+                    onClose={() => setChangingPasswordUser(null)}
+                    onSave={onUpdateUserPassword}
+                    user={changingPasswordUser}
+                />
+                <ConfirmationDialog
+                    isOpen={!!deletingUser}
+                    onClose={() => setDeletingUser(null)}
+                    onConfirm={handleConfirmDelete}
+                    title="تأكيد حذف المستخدم"
+                >
+                    <p>هل أنت متأكد أنك تريد حذف <span className="font-bold">"{deletingUser?.name}"</span>؟</p>
+                </ConfirmationDialog>
             </Card>
-
-            <UserFormModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={handleSaveUser}
-                user={editingUser}
-            />
-
-            <ConfirmationDialog
-                isOpen={!!deletingUser}
-                onClose={() => setDeletingUser(null)}
-                onConfirm={handleConfirmDelete}
-                title="تأكيد حذف المستخدم"
-            >
-                <p>هل أنت متأكد أنك تريد حذف <span className="font-bold">"{deletingUser?.name}"</span>؟</p>
-            </ConfirmationDialog>
         </div>
     );
 };
+
+
+interface DailyLogPageProps {
+  currentUser: User;
+  manpowerAgents: ManpowerAgent[];
+  dailyLogs: DailyLog[];
+  users: User[];
+  onAddDailyLog: (log: Omit<DailyLog, 'id'>) => void;
+}
+
+const DailyLogInfographicCard = ({ log, manpowerAgents, users, onPrint }: { log: DailyLog; manpowerAgents: ManpowerAgent[]; users: User[]; onPrint: () => void; }) => {
+    const { theme } = useTheme();
+    const submitter = users.find(u => u.id === log.submittedById);
+    const presentCount = log.entries.filter(e => e.status === AttendanceStatus.Present).length;
+    const absentCount = log.entries.filter(e => e.status === AttendanceStatus.Absent).length;
+    
+    const pieData = [
+        { name: 'حاضر', value: presentCount, fill: '#22C55E' },
+        { name: 'غائب', value: absentCount, fill: '#EF4444' },
+    ];
+    
+    return (
+        <Card id={`printable-area-${log.id}`} className="print-text-dark">
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <h3 className="text-xl font-bold text-dark-text dark:text-dark-text-primary">تقرير الحضور اليومي - {log.date}</h3>
+                    <p className="text-sm text-medium-text dark:text-dark-text-secondary">موقع العمل: <span className="font-semibold">{log.workplace}</span></p>
+                    <p className="text-xs text-light-text dark:text-slate-400">مقدم من: {submitter?.name || 'غير معروف'}</p>
+                </div>
+                 <button onClick={onPrint} className="no-print flex items-center gap-2 bg-secondary text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition-colors text-sm">
+                    <Icons.DownloadIcon className="w-4 h-4" />
+                    <span>طباعة</span>
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="md:col-span-1 h-32">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                             <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={5} labelLine={false} label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : '0'}%`}>
+                                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                            </Pie>
+                            <Tooltip formatter={(value) => `${value} عامل`} contentStyle={{ backgroundColor: theme === 'dark' ? '#334155' : '#FFFFFF' }}/>
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="md:col-span-2">
+                     <div className="overflow-x-auto max-h-64">
+                        <table className="min-w-full text-sm text-right">
+                            <thead className="bg-gray-50 dark:bg-slate-700 sticky top-0">
+                                <tr>
+                                    <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">العامل (CPR)</th>
+                                    <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">المهنة / المهمة</th>
+                                    <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody className="dark:text-dark-text-secondary">
+                                {log.entries.map(entry => {
+                                    const agent = manpowerAgents.find(a => a.id === entry.agentId);
+                                    if (!agent) return null;
+                                    return (
+                                        <tr key={entry.agentId} className="border-b dark:border-dark-border">
+                                            <td className="p-2 font-medium">{agent.name} <span className="text-xs text-light-text">({agent.cpr})</span></td>
+                                            <td className="p-2">
+                                                <p className="font-semibold">{agent.position}</p>
+                                                {entry.tasks && <p className="text-xs text-light-text dark:text-slate-400 mt-1">{entry.tasks}</p>}
+                                            </td>
+                                            <td className="p-2"><StatusBadge status={entry.status} type="Attendance" /></td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+const AttendanceAnalytics = ({ dailyLogs, manpowerAgents }: { dailyLogs: DailyLog[]; manpowerAgents: ManpowerAgent[]; }) => {
+    const { theme } = useTheme();
+    
+    // 7-day attendance trend
+    const last7Days = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return d.toISOString().split('T')[0];
+    }).reverse();
+
+    const attendanceTrendData = last7Days.map(date => {
+        const log = dailyLogs.find(l => l.date === date);
+        const present = log ? log.entries.filter(e => e.status === AttendanceStatus.Present).length : 0;
+        const absent = log ? log.entries.filter(e => e.status === AttendanceStatus.Absent).length : 0;
+        return { date, Present: present, Absent: absent };
+    });
+
+    // Today's profession breakdown
+    const todayLog = dailyLogs.find(l => l.date === new Date().toISOString().split('T')[0]);
+    const professionData = todayLog ? todayLog.entries
+        .filter(e => e.status === AttendanceStatus.Present)
+        .reduce((acc, entry) => {
+            const agent = manpowerAgents.find(a => a.id === entry.agentId);
+            if (agent) {
+                acc[agent.position] = (acc[agent.position] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>)
+    : {};
+
+    const professionPieData = Object.entries(professionData).map(([name, value]) => ({ name, value }));
+    const COLORS = ['#0D9488', '#F97316', '#3B82F6', '#8B5CF6', '#EC4899'];
+
+    return (
+        <Card title="تحليلات الحضور">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h4 className="font-semibold mb-4 text-medium-text dark:text-dark-text-secondary">اتجاه الحضور لآخر 7 أيام</h4>
+                    <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={attendanceTrendData}>
+                            <XAxis dataKey="date" tick={{ fontSize: 10, fill: theme === 'dark' ? '#94A3B8' : '#475569' }} />
+                            <YAxis tick={{ fill: theme === 'dark' ? '#94A3B8' : '#475569' }} />
+                            <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#334155' : '#FFFFFF' }} />
+                            <Legend wrapperStyle={{ color: theme === 'dark' ? '#94A3B8' : '#475569' }}/>
+                            <Bar dataKey="Present" name="حاضر" fill="#22C55E" />
+                            <Bar dataKey="Absent" name="غائب" fill="#EF4444" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                <div>
+                    <h4 className="font-semibold mb-4 text-medium-text dark:text-dark-text-secondary">توزيع المهن للحاضرين اليوم</h4>
+                    {professionPieData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                                <Pie data={professionPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                    {professionPieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#334155' : '#FFFFFF' }}/>
+                                <Legend wrapperStyle={{ color: theme === 'dark' ? '#94A3B8' : '#475569' }}/>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-light-text dark:text-dark-text-secondary">
+                           لم يتم تسجيل حضور اليوم.
+                        </div>
+                    )}
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+export const DailyLogPage: React.FC<DailyLogPageProps> = ({ currentUser, manpowerAgents, dailyLogs, users, onAddDailyLog }) => {
+    const [logEntries, setLogEntries] = useState<DailyLogEntry[]>([]);
+    const [workplace, setWorkplace] = useState('');
+    const [printingLogId, setPrintingLogId] = useState<number | null>(null);
+
+    const canManage = [Role.ProjectManager, Role.SiteSupervisor, Role.SiteEngineer].includes(currentUser.role);
+    
+    useEffect(() => {
+        // Initialize log entries based on available manpower
+        setLogEntries(manpowerAgents.map(agent => ({
+            agentId: agent.id,
+            status: AttendanceStatus.Present, // Default to present
+            tasks: '',
+        })));
+    }, [manpowerAgents]);
+
+    const handleStatusChange = (agentId: number, status: AttendanceStatus) => {
+        setLogEntries(prev => prev.map(entry => 
+            entry.agentId === agentId 
+            ? { ...entry, status, tasks: status === AttendanceStatus.Absent ? '' : entry.tasks } 
+            : entry
+        ));
+    };
+
+    const handleTaskChange = (agentId: number, tasks: string) => {
+        setLogEntries(prev => prev.map(entry => 
+            entry.agentId === agentId ? { ...entry, tasks } : entry
+        ));
+    };
+
+    const handleSubmitLog = () => {
+        if (!workplace.trim()) {
+            alert('الرجاء إدخال موقع العمل.');
+            return;
+        }
+        onAddDailyLog({
+            date: new Date().toISOString().split('T')[0],
+            submittedById: currentUser.id,
+            entries: logEntries,
+            workplace: workplace,
+        });
+        // Reset form for next entry
+        setWorkplace('');
+    };
+    
+    const handlePrint = (logId: number) => {
+        const pageTitle = document.title;
+        const log = dailyLogs.find(l => l.id === logId);
+        document.title = `Report - ${log?.workplace || ''} - ${log?.date || ''}`;
+        
+        setPrintingLogId(logId);
+        
+        // Use timeout to allow React to re-render with the 'no-print' classes
+        setTimeout(() => {
+            window.print();
+            setPrintingLogId(null);
+            document.title = pageTitle;
+        }, 100);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className={printingLogId !== null ? 'no-print' : ''}>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold text-dark-text dark:text-dark-text-primary">التقرير اليومي للحضور</h1>
+                </div>
+
+                {canManage && (
+                    <Card title="تسجيل حضور جديد">
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="workplace" className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">موقع العمل</label>
+                                <input
+                                    id="workplace"
+                                    type="text"
+                                    value={workplace}
+                                    onChange={(e) => setWorkplace(e.target.value)}
+                                    placeholder="مثال: برج المكاتب، الطابق 15"
+                                    className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white"
+                                />
+                            </div>
+                            <div className="overflow-x-auto max-h-96">
+                                <table className="min-w-full text-sm text-right">
+                                    <thead className="bg-gray-50 dark:bg-slate-700">
+                                        <tr>
+                                            <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">العامل (المهنة)</th>
+                                            <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">المهمة اليومية</th>
+                                            <th className="p-2 font-semibold text-medium-text dark:text-dark-text-secondary">الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="dark:text-dark-text-secondary">
+                                        {manpowerAgents.map(agent => {
+                                            const entry = logEntries.find(e => e.agentId === agent.id);
+                                            return (
+                                                <tr key={agent.id} className="border-b dark:border-dark-border">
+                                                    <td className="p-2 font-medium">{agent.name} <span className="text-xs text-light-text">({agent.position})</span></td>
+                                                    <td className="p-2">
+                                                         <input
+                                                            type="text"
+                                                            value={entry?.tasks || ''}
+                                                            onChange={(e) => handleTaskChange(agent.id, e.target.value)}
+                                                            disabled={entry?.status === AttendanceStatus.Absent}
+                                                            className="w-full text-xs border border-gray-300 dark:border-slate-600 rounded-md p-1 bg-white dark:bg-slate-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-slate-800"
+                                                            placeholder="أدخل المهام الموكلة..."
+                                                        />
+                                                    </td>
+                                                    <td className="p-2">
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => handleStatusChange(agent.id, AttendanceStatus.Present)} className={`px-2 py-1 text-xs rounded ${entry?.status === AttendanceStatus.Present ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-slate-600'}`}>حاضر</button>
+                                                            <button onClick={() => handleStatusChange(agent.id, AttendanceStatus.Absent)} className={`px-2 py-1 text-xs rounded ${entry?.status === AttendanceStatus.Absent ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-slate-600'}`}>غائب</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="text-left">
+                                <button onClick={handleSubmitLog} className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+                                    تقديم التقرير
+                                </button>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+            </div>
+
+            <div className="space-y-4">
+                <h2 className={`text-2xl font-bold text-dark-text dark:text-dark-text-primary ${printingLogId !== null ? 'no-print' : ''}`}>التقارير السابقة</h2>
+                {dailyLogs.length > 0 ? dailyLogs.map(log => (
+                    <div key={log.id} className={printingLogId !== null && printingLogId !== log.id ? 'no-print' : ''}>
+                        <DailyLogInfographicCard 
+                            log={log} 
+                            manpowerAgents={manpowerAgents}
+                            users={users}
+                            onPrint={() => handlePrint(log.id)}
+                        />
+                    </div>
+                )) : (
+                     <Card className={printingLogId !== null ? 'no-print' : ''}>
+                        <p className="text-center text-medium-text dark:text-dark-text-secondary">لا توجد تقارير سابقة.</p>
+                    </Card>
+                )}
+            </div>
+            
+            <div className={printingLogId !== null ? 'no-print' : ''}>
+                <AttendanceAnalytics dailyLogs={dailyLogs} manpowerAgents={manpowerAgents} />
+            </div>
+        </div>
+    );
+};
+
+// --- FIX: Add MailPage and ComposeMailModal components ---
+interface ComposeMailModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSend: (recipientId: number, subject: string, text: string) => void;
+    currentUser: User;
+    users: User[];
+}
+
+const ComposeMailModal: React.FC<ComposeMailModalProps> = ({ isOpen, onClose, onSend, currentUser, users }) => {
+    const [recipientId, setRecipientId] = useState('');
+    const [subject, setSubject] = useState('');
+    const [text, setText] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setRecipientId('');
+            setSubject('');
+            setText('');
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!recipientId || !subject.trim() || !text.trim()) return;
+        onSend(parseInt(recipientId), subject, text);
+        onClose();
+    };
+
+    const potentialRecipients = users.filter(u => u.id !== currentUser.id);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-xl max-w-lg w-full">
+                <h3 className="text-xl font-bold text-dark-text dark:text-dark-text-primary mb-6">رسالة جديدة</h3>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">إلى:</label>
+                        <select value={recipientId} onChange={e => setRecipientId(e.target.value)} className="w-full border bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white border-gray-300 rounded-md p-2" required>
+                            <option value="">اختر مستلم...</option>
+                            {potentialRecipients.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الموضوع:</label>
+                        <input type="text" value={subject} onChange={e => setSubject(e.target.value)} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-medium-text dark:text-dark-text-secondary mb-1">الرسالة:</label>
+                        <textarea value={text} onChange={e => setText(e.target.value)} rows={5} className="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 bg-white dark:bg-slate-700 dark:text-white" required />
+                    </div>
+                    <div className="mt-6 flex justify-end gap-3 pt-4 border-t dark:border-dark-border">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-dark-text dark:text-dark-text-primary rounded-md hover:bg-gray-300 dark:hover:bg-slate-500">إلغاء</button>
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">إرسال</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
 
 interface MailPageProps {
     currentUser: User;
@@ -1852,166 +2359,117 @@ interface MailPageProps {
 }
 
 export const MailPage: React.FC<MailPageProps> = ({ currentUser, users, conversations, messages, onSendMessage, onNewConversation }) => {
+    const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
+    const [newMessageText, setNewMessageText] = useState('');
+    const [isComposeModalOpen, setComposeModalOpen] = useState(false);
+    
     const userConversations = conversations.filter(c => c.participantIds.includes(currentUser.id));
-    const [selectedConversationId, setSelectedConversationId] = useState<number | null>(userConversations[0]?.id || null);
-    const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
+
+    const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+    // FIX: Changed date sorting to use getTime() for an explicit numeric comparison, resolving the arithmetic operation error on Date objects.
+    const conversationMessages = messages.filter(m => m.conversationId === selectedConversationId).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const handleSendMessage = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newMessageText.trim() && selectedConversationId) {
+            onSendMessage(selectedConversationId, newMessageText);
+            setNewMessageText('');
+        }
+    };
     
     const messagesEndRef = useRef<null | HTMLDivElement>(null);
-    const scrollToBottom = () => {
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-    useEffect(scrollToBottom, [messages, selectedConversationId]);
-
-    const MessageInput = ({ conversationId }: { conversationId: number }) => {
-        const [text, setText] = useState('');
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            if (text.trim()) {
-                onSendMessage(conversationId, text);
-                setText('');
-            }
-        };
-        return (
-            <form onSubmit={handleSubmit} className="p-4 border-t bg-white">
-                <div className="flex items-center gap-2">
-                    <input
-                        type="text"
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        placeholder="اكتب رسالتك هنا..."
-                        className="flex-1 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <button type="submit" className="bg-primary text-white rounded-full p-2 hover:bg-primary-dark">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                    </button>
-                </div>
-            </form>
-        );
-    };
-    
-    const ComposeModal: React.FC = () => {
-        const [recipientId, setRecipientId] = useState('');
-        const [subject, setSubject] = useState('');
-        const [text, setText] = useState('');
-
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
-            if (recipientId && subject.trim() && text.trim()) {
-                onNewConversation(parseInt(recipientId), subject, text);
-                setIsComposeModalOpen(false);
-            }
-        };
-
-        const otherUsers = users.filter(u => u.id !== currentUser.id);
-
-        return (
-             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-                <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
-                    <h3 className="text-lg font-bold text-dark-text mb-6">رسالة جديدة</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">إلى:</label>
-                             <select value={recipientId} onChange={e => setRecipientId(e.target.value)} className="w-full border bg-white border-gray-300 rounded-md p-2" required>
-                                <option value="">اختر مستلم...</option>
-                                {otherUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الموضوع:</label>
-                            <input type="text" value={subject} onChange={e => setSubject(e.target.value)} className="w-full border border-gray-300 rounded-md p-2" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-medium-text mb-1">الرسالة:</label>
-                            <textarea value={text} onChange={e => setText(e.target.value)} rows={4} className="w-full border border-gray-300 rounded-md p-2" required />
-                        </div>
-                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                            <button type="button" onClick={() => setIsComposeModalOpen(false)} className="px-4 py-2 bg-gray-200 text-dark-text rounded-md hover:bg-gray-300">إلغاء</button>
-                            <button type="submit" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark">إرسال</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        )
-    };
-    
-    const lastMessage = (convId: number) => {
-        const convMessages = messages.filter(m => m.conversationId === convId);
-        // FIX: The original slice(-1)[0] could return undefined. This check is more robust.
-        return convMessages.length > 0 ? convMessages[convMessages.length - 1] : null;
-    }
-
+    }, [conversationMessages]);
 
     return (
-        <div className="h-[calc(100vh-120px)] flex">
-            {isComposeModalOpen && <ComposeModal />}
-            <Card className="flex-shrink-0 w-full md:w-1/3 min-w-[300px] h-full flex flex-col">
-                <div className="flex justify-between items-center pb-4 border-b">
-                    <h2 className="text-xl font-bold">البريد الوارد</h2>
-                    <button onClick={() => setIsComposeModalOpen(true)} className="p-2 rounded-full hover:bg-light-bg">
-                        <Icons.EditIcon className="w-6 h-6 text-primary" />
+        <div className="flex h-[calc(100vh-10rem)]">
+            {/* Conversation List */}
+            <div className="w-1/3 border-r dark:border-dark-border bg-white dark:bg-dark-card rounded-l-lg flex flex-col">
+                <div className="p-4 border-b dark:border-dark-border flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-dark-text dark:text-dark-text-primary">البريد الوارد</h2>
+                    <button onClick={() => setComposeModalOpen(true)} className="text-primary hover:text-primary-dark" title="رسالة جديدة">
+                        <Icons.PlusIcon className="w-6 h-6" />
                     </button>
                 </div>
-                <ul className="flex-1 overflow-y-auto mt-4 space-y-2">
+                <div className="overflow-y-auto flex-1">
                     {userConversations.map(conv => {
                         const otherParticipantId = conv.participantIds.find(id => id !== currentUser.id);
                         const otherParticipant = users.find(u => u.id === otherParticipantId);
-                        const msg = lastMessage(conv.id);
+                        // FIX: Changed date sorting to use getTime() for an explicit numeric comparison, resolving the arithmetic operation error on Date objects.
+                        const lastMessage = messages.filter(m => m.conversationId === conv.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                        
                         return (
-                            <li key={conv.id} onClick={() => setSelectedConversationId(conv.id)}
-                                className={`p-3 rounded-lg cursor-pointer ${selectedConversationId === conv.id ? 'bg-primary/10' : 'hover:bg-light-bg'}`}>
+                            <div key={conv.id} onClick={() => setSelectedConversationId(conv.id)}
+                                className={`p-4 border-b dark:border-dark-border cursor-pointer hover:bg-light-bg dark:hover:bg-slate-700 ${selectedConversationId === conv.id ? 'bg-teal-50 dark:bg-primary/20' : ''}`}>
                                 <div className="flex items-center gap-3">
-                                    <img src={otherParticipant?.avatar} alt={otherParticipant?.name} className="w-12 h-12 rounded-full" />
-                                    <div className="flex-1 overflow-hidden">
-                                        <div className="flex justify-between items-center">
-                                            <p className="font-bold text-dark-text">{otherParticipant?.name}</p>
-                                            <p className="text-xs text-light-text">{msg && new Date(msg.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                                        </div>
-                                        <p className="text-sm text-medium-text truncate">{conv.subject}</p>
-                                        <p className="text-sm text-light-text truncate">{msg?.text}</p>
+                                    <img src={otherParticipant?.avatar} alt={otherParticipant?.name} className="w-10 h-10 rounded-full" />
+                                    <div>
+                                        <h3 className="font-semibold text-dark-text dark:text-dark-text-secondary">{otherParticipant?.name}</h3>
+                                        <p className="text-sm text-medium-text dark:text-dark-text-secondary truncate">{conv.subject}</p>
+                                        <p className="text-xs text-light-text dark:text-slate-400 truncate">{lastMessage?.text}</p>
                                     </div>
                                 </div>
-                            </li>
+                            </div>
                         );
                     })}
-                </ul>
-            </Card>
+                </div>
+            </div>
 
-            <div className="flex-1 h-full flex-col bg-white rounded-xl shadow-lg border border-gray-100 md:ml-6 hidden md:flex">
-                {selectedConversationId ? (
+            {/* Message View */}
+            <div className="w-2/3 bg-gray-50 dark:bg-slate-800/50 rounded-r-lg flex flex-col">
+                {selectedConversation ? (
                     <>
-                        <div className="p-4 border-b flex items-center gap-3">
-                             <h3 className="text-lg font-bold text-dark-text">{conversations.find(c => c.id === selectedConversationId)?.subject}</h3>
+                        <div className="p-4 border-b dark:border-dark-border">
+                            <h3 className="text-lg font-bold text-dark-text dark:text-dark-text-primary">{selectedConversation.subject}</h3>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-                            {messages.filter(m => m.conversationId === selectedConversationId).map(message => {
-                                const sender = users.find(u => u.id === message.senderId);
-                                const isCurrentUser = message.senderId === currentUser.id;
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {conversationMessages.map(msg => {
+                                const sender = users.find(u => u.id === msg.senderId);
+                                const isCurrentUser = msg.senderId === currentUser.id;
                                 return (
-                                    <div key={message.id} className={`flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                                        {!isCurrentUser && <img src={sender?.avatar} alt={sender?.name} className="w-8 h-8 rounded-full" />}
-                                        <div className={`max-w-md p-3 rounded-2xl ${isCurrentUser ? 'bg-primary text-white rounded-br-none' : 'bg-gray-200 text-dark-text rounded-bl-none'}`}>
-                                            <p>{message.text}</p>
-                                            <p className={`text-xs mt-1 ${isCurrentUser ? 'text-gray-200' : 'text-light-text'} text-left`}>
-                                                {new Date(message.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+                                    <div key={msg.id} className={`flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                                        {!isCurrentUser && sender && <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full" />}
+                                        <div className={`max-w-md p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-white rounded-br-none' : 'bg-white dark:bg-dark-card text-dark-text dark:text-dark-text-secondary rounded-bl-none'}`}>
+                                            <p>{msg.text}</p>
+                                            <p className={`text-xs mt-1 text-right ${isCurrentUser ? 'text-blue-200' : 'text-light-text dark:text-slate-400'}`}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
-                                        {isCurrentUser && <img src={sender?.avatar} alt={sender?.name} className="w-8 h-8 rounded-full" />}
+                                        {isCurrentUser && sender && <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-full" />}
                                     </div>
                                 );
                             })}
-                             <div ref={messagesEndRef} />
+                            <div ref={messagesEndRef} />
                         </div>
-                        <MessageInput conversationId={selectedConversationId} />
+                        <div className="p-4 border-t dark:border-dark-border bg-white dark:bg-dark-card">
+                            <form onSubmit={handleSendMessage} className="flex gap-3">
+                                <input
+                                    type="text"
+                                    value={newMessageText}
+                                    onChange={e => setNewMessageText(e.target.value)}
+                                    placeholder="اكتب رسالتك..."
+                                    className="flex-1 border border-gray-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 dark:text-white"
+                                />
+                                <button type="submit" className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">إرسال</button>
+                            </form>
+                        </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex justify-center items-center text-center text-medium-text">
-                        <div>
-                            <Icons.MailIcon className="w-24 h-24 mx-auto text-gray-300" />
-                            <p className="mt-4">اختر محادثة لعرض الرسائل</p>
+                    <div className="flex-1 flex justify-center items-center text-medium-text dark:text-dark-text-secondary">
+                        <div className="text-center">
+                            <Icons.MailIcon className="w-16 h-16 mx-auto text-gray-300 dark:text-slate-600" />
+                            <p className="mt-2">اختر محادثة لعرض الرسائل.</p>
                         </div>
                     </div>
                 )}
             </div>
+            
+            <ComposeMailModal
+                isOpen={isComposeModalOpen}
+                onClose={() => setComposeModalOpen(false)}
+                onSend={onNewConversation}
+                currentUser={currentUser}
+                users={users}
+            />
         </div>
     );
 };

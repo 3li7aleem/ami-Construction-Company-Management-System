@@ -132,3 +132,17 @@ export interface ManpowerAgent {
   dateAdded: string;
   attendance: AttendanceStatus;
 }
+
+export interface DailyLogEntry {
+  agentId: number;
+  status: AttendanceStatus;
+  tasks?: string;
+}
+
+export interface DailyLog {
+  id: number;
+  date: string;
+  submittedById: number;
+  entries: DailyLogEntry[];
+  workplace?: string;
+}

@@ -11,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -24,11 +25,45 @@
               'dark-text': '#1E293B',
               'medium-text': '#475569',
               'light-text': '#64748B',
+              'dark-bg': '#1E293B',
+              'dark-card': '#334155',
+              'dark-border': '#475569',
+              'dark-text-primary': '#F1F5F9',
+              'dark-text-secondary': '#94A3B8',
             },
           },
         },
       }
     </script>
+    <style>
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        body, #root {
+          background-color: white !important;
+        }
+        main {
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+        #printable-area {
+          border: none !important;
+          box-shadow: none !important;
+          margin: 0;
+          width: 100%;
+          height: 100%;
+        }
+        .dark #printable-area,
+        .dark #printable-area *,
+        .dark .print-text-dark {
+          background-color: #ffffff !important;
+          color: #000000 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -40,7 +75,7 @@
 }
 </script>
 </head>
-  <body class="bg-light-bg">
+  <body class="bg-light-bg dark:bg-dark-bg">
     <div id="root"></div>
   </body>
 </html>
